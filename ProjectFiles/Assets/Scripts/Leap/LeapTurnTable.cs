@@ -132,6 +132,11 @@ public class LeapTurnTable : MonoBehaviour {
 		m_oldRotation = transform.eulerAngles;
 		m_oldTouchPosition = other.transform.position;
 		m_newPushDown = false;
+
+		float x = (float)tangentialVelocity.x;
+		float y = (float)tangentialVelocity.y;
+		print("collision");
+		Sending.sendSignal(1, x, y);
 	}
 	
 	// checks to see if the filter buttons are pressed and sets the 
@@ -189,8 +194,10 @@ public class LeapTurnTable : MonoBehaviour {
 			m_regionCollision = false;
 		} else {
 			transform.position += transform.up * m_springFactor;
+			print("no collision");
+			Sending.sendSignal(0, 0.0f, 0.0f );
 		}
-		
+
 		// clamp to down position if button is pressed down
 		if (m_isDown && Vector3.Dot(transform.position - m_originalPosition, -transform.up) < m_onDepth) {
 			transform.position = m_originalPosition - transform.up * m_onDepth;

@@ -16,9 +16,12 @@ void loop() {
    touching = Serial.parseInt();
    x = Serial.parseFloat();
    y = Serial.parseFloat();
-   if(touching==0){
-     digitalWrite(onBoardLED, LOW);
-   } else if(touching==1){
-     digitalWrite(onBoardLED, HIGH);
+   if (Serial.read() == '\n'){
+     if(touching==0){
+       digitalWrite(onBoardLED, LOW);
+     } else if(touching==1){
+       digitalWrite(onBoardLED, HIGH);
+     }
+     touching = 0;
    }
 }
