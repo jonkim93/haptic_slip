@@ -20,7 +20,9 @@ void loop() {
      if(touching==0){
        digitalWrite(onBoardLED, LOW);
      } else if(touching==1){
-       digitalWrite(onBoardLED, HIGH);
+       if (x>0.5 || x<-0.5){
+         digitalWrite(onBoardLED, HIGH);
+       }
      }
      touching = 0;
    }

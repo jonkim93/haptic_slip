@@ -136,6 +136,8 @@ public class LeapTurnTable : MonoBehaviour {
 		float x = (float)tangentialVelocity.x;
 		float y = (float)tangentialVelocity.y;
 		print("collision");
+		print(x);
+		print(y);
 		Sending.sendSignal(1, x, y);
 	}
 	
