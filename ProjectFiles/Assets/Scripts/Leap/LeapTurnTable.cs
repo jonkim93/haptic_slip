@@ -40,6 +40,7 @@ public class LeapTurnTable : MonoBehaviour {
 	GameObject m_firstTouchObject;
 	
 	bool m_seeking = false;
+	int counter = 0;
 	
 	void Start () {
 		m_originalPosition = transform.position;
@@ -63,13 +64,6 @@ public class LeapTurnTable : MonoBehaviour {
 
 		// only respond to fingertips
 		if (other.tag != "FingerTip") return;
-
-		//Debug.Log ("transform rotation");
-		//Debug.Log (transform.rotation);
-		//Debug.Log ("other rotation");
-		//Debug.Log (other.transform.rotation);
-		//Debug.Log ("other position");
-		//Debug.Log (other.transform.position);
 		
 		// logic to prevent multiple fingers from screweing up seeking 
 		if (!(m_newPushDown || (m_firstTouchObject == other.gameObject))) return;
@@ -95,24 +89,6 @@ public class LeapTurnTable : MonoBehaviour {
 		if (currentDepth > m_maxDepth) {
 			transform.position = m_originalPosition - transform.up * m_maxDepth;
 		}
-		
-		// check to see if the finger has move enough to enable seeking the track.
-		/**Vector3 centerToPrev = 	(m_oldTouchPosition - transform.position).normalized;
-		Vector3 centerToCurr = (other.transform.position - transform.position).normalized;
-		float dist = Mathf.Abs(Vector3.Dot(other.transform.position - transform.position, other.transform.forward));
-		
-		if ((centerToCurr - centerToPrev).magnitude > 0 && !m_newPushDown && dist > 0.1f) {
-			float angle = Mathf.Rad2Deg * Mathf.Acos(Vector3.Dot (centerToPrev, centerToCurr));
-			if (Mathf.Abs(angle) > 5.0f)  {
-				if (Vector3.Dot (transform.up, Vector3.Cross (centerToPrev, centerToCurr)) < 0.0f) {
-					angle = -angle;
-				}
-				
-				//GetComponent<AudioSource>().pitch = angle * 0.3f;
-				transform.Rotate(Vector3.up * angle);
-				m_seeking = true;
-			}
-		}**/
 
 		Vector3 deltaRotation = transform.eulerAngles - m_oldRotation;
 		Vector3 deltaRotationRadians = deltaRotation * (3.14F / 180.0F);
@@ -138,7 +114,19 @@ public class LeapTurnTable : MonoBehaviour {
 		print("collision");
 		print(x);
 		print(y);
-		Sending.sendSignal(1, x, y);
+		//Sending.sendSignal(1, x, y);
+
+		double deltaDistance;
+		if (x > 0){
+			deltaDistance = 20;
+		} else {
+			deltaDistance = -20;
+		}
+		print(counter);
+		print("sending finger down");
+		//Sending.sendDeltaDistance("t", 2, deltaDistance);
+		Sending.commandVelocity(2, x);
+		counter++;
 	}
 	
 	// checks to see if the filter buttons are pressed and sets the 
@@ -179,13 +167,17 @@ public class LeapTurnTable : MonoBehaviour {
 		
 		if (!m_isDown) {
 			renderer.material.shader = Shader.Find("Diffuse");
+			print("sending finger up");
+			print(counter);
+			Sending.sendDeltaDistance("f", 2, 0);
+			counter++;
 		}
 		
 		CheckFilterButtons();
 		CheckCrossFader();
 
 		//rotate the turntable automatically
-		transform.Rotate(Vector3.up * Time.deltaTime * 64.0f);
+		transform.Rotate(Vector3.up * Time.deltaTime * 20.0f);
 		//GetComponent<AudioSource>().pitch = 0.0f;
 
 		//Debug.Log (rigidbody.angularVelocity);
@@ -196,8 +188,8 @@ public class LeapTurnTable : MonoBehaviour {
 			m_regionCollision = false;
 		} else {
 			transform.position += transform.up * m_springFactor;
-			print("no collision");
-			Sending.sendSignal(0, 0.0f, 0.0f );
+			//print("no collision");
+			//Sending.sendSignal(0, 0.0f, 0.0f );
 		}
 
 		// clamp to down position if button is pressed down
@@ -210,6 +202,7 @@ public class LeapTurnTable : MonoBehaviour {
 			transform.position = m_originalPosition;	
 		}
 
+		//Sending.sendDeltaDistance("t", 2, 0.1);
 		m_isDown = false;
 		m_seeking = false;
 	}
