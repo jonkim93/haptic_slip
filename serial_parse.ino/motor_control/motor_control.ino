@@ -29,8 +29,11 @@ DRV8835MotorShield driver1;
 DRV8835MotorShield driver2;
 Encoder enc1A(2,3);
 Encoder enc1B(4,5);
-PID pid1A(&Input1A, &Output1A, &Setpoint1A, 32, 0.002, 0.01, DIRECT);
-PID pid1B(&Input1B, &Output1B, &Setpoint1B, 32, 0.002, 0.01, DIRECT);
+double K_p = 2.0;
+double K_i = 5.0;
+double K_d = 3.0;
+PID pid1A(&Input1A, &Output1A, &Setpoint1A, K_p, K_i, K_d, DIRECT);
+PID pid1B(&Input1B, &Output1B, &Setpoint1B, K_p, K_i, K_d, DIRECT);
 
 void setup()
 {
@@ -90,6 +93,10 @@ void moveToAngle(double a, int motor){
           pid1A.Compute();
           driver1.setM1Speed(Output1A);
           Input1A = (double) enc1A.read();
+          if (DEBUG){
+            Serial.println(Input1A);
+            Serial.println(Output1A); 
+          }
         }
       } else if (Input1A - a > MARGIN) {
         driver1.flipM1(true);
@@ -100,6 +107,10 @@ void moveToAngle(double a, int motor){
           pid1A.Compute();
           driver1.setM1Speed(Output1A);
           Input1A = (double) enc1A.read();
+          if (DEBUG){
+            Serial.println(Input1A);
+            Serial.println(Output1A); 
+          }
         }
       }
       driver1.setM1Speed(0);
@@ -169,7 +180,7 @@ void testCommandSpeed(int sp){
 void loop()
 {
   if (!Homed){
-    goHome();
+    //goHome();
     Homed = true; 
   }
   FingerDown = true;
