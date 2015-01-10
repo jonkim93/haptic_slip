@@ -4,10 +4,12 @@
 #include <stdlib.h> 
 
 /*
- * This example uses the DRV8835MotorShield library to drive each motor with the
- * Pololu DRV8835 Dual Motor Driver Shield for Arduino forward, then backward. 
- * The yellow user LED is on when a motor is set to a positive speed and off when
- * a motor is set to a negative speed.
+ * Deterministic motor control of the haptic slip device; send packets over serial in the form:
+ * 'fmsd', where 
+ *     f = {'t','f'} for whether or not the finger is down, 
+ *     m = {1,2,3,4} for which motor we are commanding, 
+ *     s = {'+', '-'} for the sign of the delta command,
+ *     d = 0-10000, where each increment is an additional tick of 0.01cm
  */
 
 #define LED_PIN 13
@@ -24,6 +26,11 @@ double Setpoint1A, Input1A, Output1A, Setpoint1B, Input1B, Output1B;
 boolean Flipped;
 boolean FingerDown;
 boolean Homed;
+boolean terminated;
+int prevDeltaDist;
+int prevMotor;
+int prevMillis;
+int counter;
 
 DRV8835MotorShield driver1;
 DRV8835MotorShield driver2;
@@ -55,6 +62,9 @@ void setup()
   if (DEBUG){
     Serial.println("done setting up");
   }
+  prevMillis = millis();
+  counter = 0;
+  terminated = false;
 }
 
 void goHome(){
@@ -153,76 +163,48 @@ void moveToAngle(double a, int motor){
       }
       driver1.setM2Speed(0);
       digitalWrite(LED_PIN, LOW);
-      Serial.println(enc1B.read());
       break; 
-  }
-  
-  
-  
-}
-
-void testCommandSpeed(int sp){
-  /**if (sp > 0){
-    motors.flipM1(true);
-    motors.setM1Speed(sp);
-  } else if (sp < 0){
-    motors.flipM1(false);
-    motors.setM1Speed(-sp); 
-  } **/
-  if (DEBUG){
-    Serial.println(sp);
-  }
-  driver1.setM1Speed(sp);
-  delay(1000);
-  driver1.setM1Speed(0);
+  }  
 }
 
 void loop()
 {
-  if (!Homed){
-    //goHome();
-    Homed = true; 
-  }
-  FingerDown = true;
-  if (Serial.available()){
-    Serial.println("receiving");
+  if (Serial.available()){ 
     if (DEBUG){
-      Serial.println("Receiving serial");
+      Serial.println("new command");
     }
     char f = Serial.read();
-    if (DEBUG){
-      Serial.println(f);
-    }
-    FingerDown = f!='f';
     int m = Serial.parseInt();
-    if (DEBUG){
-      Serial.println(m);
-    }
     int a;
     char s = Serial.read();
-    if (DEBUG){
-      Serial.println(s);
-    }
     if (s == '-'){
       a = -(double) Serial.parseInt();
     } else if (s == '+'){
       a = (double) Serial.parseInt();
     }
-    if (DEBUG){
-      Serial.println(a);
-    }
-    if (FingerDown){
-      //moveToAngle(a, m);
-      moveDeltaDistance(a, m);
-      if (DEBUG){
-        Serial.println(a);
-        Serial.printf("\nMotor 1A: "); 
-        Serial.print((int) enc1A.read());
-        Serial.printf("\nMotor 1B: ");
-        Serial.print((int) enc1B.read());
+    
+    a = a/5; //scale down 
+    terminated = false;
+    prevDeltaDist = a;
+    prevMotor = m;
+    moveDeltaDistance(a, m); 
+  } else {
+    if (counter < 5 && !terminated){
+      if (prevMillis != millis()){
+        if (DEBUG){
+          Serial.println(counter);
+          Serial.println(prevDeltaDist);
+        }
+        moveDeltaDistance(prevDeltaDist, prevMotor); 
+        prevMillis = millis();
+        counter ++;
+        if (DEBUG){
+          Serial.println("executing command");
+        }
       }
-    } else if (!FingerDown) {
-      //goHome();
+    } else {
+      counter = 0;
+      terminated = true;
     }
   }
 }

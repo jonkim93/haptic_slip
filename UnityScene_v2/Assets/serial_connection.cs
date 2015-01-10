@@ -4,7 +4,7 @@ using System.Threading;
 using System.Collections;
 using System;
 
-public class sending : MonoBehaviour{
+public class serial_connection : MonoBehaviour{
 	public static SerialPort sp = new SerialPort("/dev/tty.usbmodem427921", 115200);
 	public string message;
 
@@ -44,16 +44,6 @@ public class sending : MonoBehaviour{
     sp.Close();	
   }
 
-  public static void sendSignal(int touching, float x, float y){
-    if (touching==1){
-      print("sending");
-    }
-  	sp.Write(touching.ToString());
-  	sp.Write(x.ToString());
-  	sp.Write(y.ToString());
-    sp.Write("\n");
-  }
-
   public static void sendDeltaDistance(string touching, int motor, int d){
     string msg = touching + motor.ToString();
     if (d >= 0){
@@ -62,12 +52,6 @@ public class sending : MonoBehaviour{
     msg = msg + d.ToString() + "\n";
     print("MESSAGE: "+msg);
     sp.Write(msg);
-  }
-
-  public static void commandVelocity(int motor, float v){ // v is in meters/second
-    float deltaDistance = v * Time.fixedDeltaTime * 100.0F;
-    int numTicks = (int) Math.Floor(deltaDistance+0.5);
-    sendDeltaDistance("t", motor, numTicks);
   }
 
 }

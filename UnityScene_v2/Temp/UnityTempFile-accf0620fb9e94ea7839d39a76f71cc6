@@ -43,5 +43,6 @@
 -define:UNITY_EDITOR_OSX
 'Assets/cube_script.cs'
 'Assets/plane_script.cs'
+'Assets/serial_connection.cs'
 -r:'/Applications/Unity/Unity.app/Contents/Frameworks/Mono/lib/mono/2.0/System.Runtime.Serialization.dll'
 -r:'/Applications/Unity/Unity.app/Contents/Frameworks/Mono/lib/mono/2.0/System.Xml.Linq.dll'
