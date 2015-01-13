@@ -5,12 +5,8 @@
 #include <stdlib.h> 
 
 /*
- * Deterministic motor control of the haptic slip device; send packets over serial in the form:
- * 'fmsd', where 
- *     f = {'t','f'} for whether or not the finger is down, 
- *     m = {1,2,3,4} for which motor we are commanding, 
- *     s = {'+', '-'} for the sign of the delta command,
- *     d = 0-10000, where each increment is an additional tick of 0.01cm
+ * interleave commands to multiple motors simultaneously; doesn't work very well
+ * the serial is being read twice; why??
  */
 
 #define LED_PIN 13

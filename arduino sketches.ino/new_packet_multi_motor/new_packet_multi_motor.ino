@@ -5,34 +5,37 @@
 #include <stdlib.h> 
 
 /*
- * Deterministic motor control of the haptic slip device; send packets over serial in the form:
- * 'fmsd', where 
- *     f = {'t','f'} for whether or not the finger is down, 
- *     m = {1,2,3,4} for which motor we are commanding, 
- *     s = {'+', '-'} for the sign of the delta command,
- *     d = 0-10000, where each increment is an additional tick of 0.01cm
+ * interleave commands; change communications protocol to : 
+ *   fsd1sd2sd3sd4 
+ *      where f = {'t', 'f'} for finger down
+ *            s = {'+', '-'} for sign of delta command
+ *            d1 = motor1 delta command
+ *            d2 = motor2 delta command...etc
+ *
+ * SERIAL IS BEING READ TWICE; WHY IS THAT??
  */
 
 #define LED_PIN 13
 #define MARGIN 0
 #define SCALE_FACTOR 114.591559026
-#define M1A 1
-#define M1B 2
-#define M2A 3
-#define M2B 4
+#define M1A 0
+#define M1B 1
+#define M2A 2
+#define M2B 3
 #define DEBUG false
-#define INCREMENT 0.01 //cm
+#define INCREMENT 0.01
+#define MS_PER_STEP 5
 
 double Setpoint1A, Input1A, Output1A, Setpoint1B, Input1B, Output1B;
 double Setpoint2A, Input2A, Output2A, Setpoint2B, Input2B, Output2B;
 boolean Flipped;
 boolean FingerDown;
 boolean Homed;
-boolean terminated;
-int prevDeltaDist;
-int prevMotor;
-int prevMillis;
-int counter;
+
+boolean terminated [4];
+int prevDeltas [4];
+int prevMillis [4];
+int counters [4];
 
 DRV8835MotorShield1 driver1;
 DRV8835MotorShield2 driver2;
@@ -78,16 +81,11 @@ void setup()
   if (DEBUG){
     Serial.println("done setting up");
   }
-  prevMillis = millis();
-  counter = 0;
-  terminated = false;
-}
-
-void goHome(){
-  moveToAngle(180.0, M1A);
-  moveToAngle(180.0, M1B); 
-  moveToAngle(180.0, M2A);
-  moveToAngle(180.0, M2B);
+  for (int x=0; x<4; x++){
+    prevMillis[x] = millis();
+    counters[x] = 0;
+    terminated[x] = false;
+  }
 }
 
 void moveDeltaDistance(int d, int motor){ //moves a certain distance in cm
@@ -116,7 +114,6 @@ void moveDeltaDistance(int d, int motor){ //moves a certain distance in cm
 }
 
 void moveToAngle(double a, int motor){
-  int prevMillis;
   switch (motor){
     case M1A:
       Setpoint1A = a;
@@ -124,8 +121,8 @@ void moveToAngle(double a, int motor){
       if (a - Input1A > MARGIN){
         driver1.flipM1(false);
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (a - Input1A > MARGIN && prevMillis==millis()){
+        while (a - Input1A > MARGIN){
+          // put some timeout functionality here??
           pid1A.Compute();
           driver1.setM1Speed(Output1A);
           Input1A = (double) enc1A.read();
@@ -137,8 +134,7 @@ void moveToAngle(double a, int motor){
       } else if (Input1A - a > MARGIN) {
         driver1.flipM1(true);
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (Input1A - a > MARGIN && prevMillis==millis()){
+        while (Input1A - a > MARGIN){
           Input1A = Setpoint1A;
           Setpoint1A = (double) enc1A.read();
           pid1A.Compute();
@@ -163,14 +159,7 @@ void moveToAngle(double a, int motor){
           Serial.println("greater than margin");
         }
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (a - Input1B > MARGIN && prevMillis==millis()){
-          if (DEBUG){
-            Serial.println("here");
-            Serial.println(a);
-            Serial.println(Output1B);
-            Serial.println(enc1B.read());
-          }
+        while (a - Input1B > MARGIN){
           pid1B.Compute();
           driver1.setM2Speed(Output1B);
           Input1B = (double) enc1B.read();
@@ -178,11 +167,7 @@ void moveToAngle(double a, int motor){
       } else if (Input1B - a > MARGIN) {
         driver1.flipM2(true);
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (Input1B - a > MARGIN && prevMillis==millis()){
-          if (DEBUG){
-            Serial.println("here1");
-          }
+        while (Input1B - a > MARGIN){
           Input1B = Setpoint1B;
           Setpoint1B = (double) enc1B.read();
           pid1B.Compute();
@@ -203,13 +188,12 @@ void moveToAngle(double a, int motor){
           Serial.println("greater than margin");
         }
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (a - Input2A > MARGIN && prevMillis==millis()){
+        while (a - Input2A > MARGIN){
           if (DEBUG){
             Serial.println("here");
-            Serial.printf("COMMAND: %d\n", a);
-            Serial.printf("OUTPUT: %d\n", Output2A);
-            Serial.printf("ENCODER VALUE: %d\n", enc2A.read());
+            Serial.println(a);
+            Serial.println(Output2A);
+            Serial.println(enc2A.read());
           }
           pid2A.Compute();
           driver2.setM1Speed(Output2A);
@@ -218,8 +202,7 @@ void moveToAngle(double a, int motor){
       } else if (Input2A - a > MARGIN) {
         driver2.flipM1(true);
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (Input2A - a > MARGIN && prevMillis==millis()){
+        while (Input2A - a > MARGIN){
           if (DEBUG){
             Serial.println("here1");
           }
@@ -243,10 +226,9 @@ void moveToAngle(double a, int motor){
           Serial.println("greater than margin");
         }
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (a - Input2B > MARGIN && prevMillis==millis()){
+        while (a - Input2B > MARGIN){
           if (DEBUG){
-            Serial.println("here");
+            Serial.println("here2B");
             Serial.println(a);
             Serial.println(Output2B);
             Serial.println(enc2B.read());
@@ -258,8 +240,7 @@ void moveToAngle(double a, int motor){
       } else if (Input2B - a > MARGIN) {
         driver2.flipM2(true);
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
-        while (Input2B - a > MARGIN && prevMillis==millis()){
+        while (Input2B - a > MARGIN){
           if (DEBUG){
             Serial.println("here1");
           }
@@ -279,42 +260,53 @@ void moveToAngle(double a, int motor){
 
 void loop()
 {
+  int x;
+  int scaledCommand;
   if (Serial.available()){ 
-    if (DEBUG){
-      Serial.println("new command");
+    //parse serial for command
+    /**char msg_array [20]; 
+    Serial.readBytesUntil('\n', msg_array, 20);
+    for (int c=0; c<20; c++){
+      Serial.print(msg_array[c]); 
     }
+    Serial.print('\n');**/
     char f = Serial.read();
-    int m = Serial.parseInt();
+    Serial.println(f);
     int a;
-    char s = Serial.read();
-    if (s == '-'){
-      a = -(double) Serial.parseInt();
-    } else if (s == '+'){
-      a = (double) Serial.parseInt();
-    }
+    char s;
     
-    a = a/5; //scale down 
-    terminated = false;
-    prevDeltaDist = a;
-    prevMotor = m;
-    moveDeltaDistance(a, m); 
-  } else {
-    if (counter < 5 && !terminated){
-      if (prevMillis != millis()){
-        if (DEBUG){
-          Serial.println(counter);
-          Serial.println(prevDeltaDist);
+    if (f=='t'){
+      for (x=0; x<4; x++){
+        s = Serial.read();
+        Serial.printf("received and parsing: %d, %c\n", x, s);
+        if (s == '-'){
+          a = -(double) Serial.parseInt();
+        } else if (s == '+'){
+          a = (double) Serial.parseInt();
         }
-        moveDeltaDistance(prevDeltaDist, prevMotor); 
-        prevMillis = millis();
-        counter ++;
-        if (DEBUG){
-          Serial.println("executing command");
-        }
+        //scaledCommand = a/MS_PER_STEP; //scale down
+        prevDeltas[x] = a/MS_PER_STEP; //scaledCommand;
+        terminated[x] = false;
       }
-    } else {
-      counter = 0;
-      terminated = true;
+      
+      for (x=0; x<4; x++){
+        Serial.printf("commanding motor %d: %d\n", x, prevDeltas[x]);
+        moveDeltaDistance(prevDeltas[x], x);
+      }
+    }
+  } else {
+    for (x=0; x<4; x++){ //iterate through all the motors 
+      if (counters[x] < MS_PER_STEP && !terminated[x]){
+        if (prevMillis[x] != millis()){        
+          Serial.printf("commanding motor %d: %d at %d\n", x, prevDeltas[x], prevMillis[x]);
+          moveDeltaDistance(prevDeltas[x], x); 
+          prevMillis[x] = millis();
+          counters[x] ++;
+        }
+      } else {
+        counters[x] = 0;
+        terminated[x] = true;
+      }
     }
   }
 }
