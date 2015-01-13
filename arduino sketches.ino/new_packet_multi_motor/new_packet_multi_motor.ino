@@ -114,6 +114,7 @@ void moveDeltaDistance(int d, int motor){ //moves a certain distance in cm
 }
 
 void moveToAngle(double a, int motor){
+  int prevMillis;
   switch (motor){
     case M1A:
       Setpoint1A = a;
@@ -121,8 +122,8 @@ void moveToAngle(double a, int motor){
       if (a - Input1A > MARGIN){
         driver1.flipM1(false);
         digitalWrite(LED_PIN, HIGH);
-        while (a - Input1A > MARGIN){
-          // put some timeout functionality here??
+        prevMillis = millis();
+        while (a - Input1A > MARGIN && prevMillis == millis()){
           pid1A.Compute();
           driver1.setM1Speed(Output1A);
           Input1A = (double) enc1A.read();
@@ -134,7 +135,8 @@ void moveToAngle(double a, int motor){
       } else if (Input1A - a > MARGIN) {
         driver1.flipM1(true);
         digitalWrite(LED_PIN, HIGH);
-        while (Input1A - a > MARGIN){
+        prevMillis = millis();
+        while (Input1A - a > MARGIN && prevMillis == millis()){
           Input1A = Setpoint1A;
           Setpoint1A = (double) enc1A.read();
           pid1A.Compute();
@@ -159,7 +161,8 @@ void moveToAngle(double a, int motor){
           Serial.println("greater than margin");
         }
         digitalWrite(LED_PIN, HIGH);
-        while (a - Input1B > MARGIN){
+        prevMillis = millis();
+        while (a - Input1B > MARGIN && prevMillis==millis()){
           pid1B.Compute();
           driver1.setM2Speed(Output1B);
           Input1B = (double) enc1B.read();
@@ -167,7 +170,8 @@ void moveToAngle(double a, int motor){
       } else if (Input1B - a > MARGIN) {
         driver1.flipM2(true);
         digitalWrite(LED_PIN, HIGH);
-        while (Input1B - a > MARGIN){
+        prevMillis = millis();
+        while (Input1B - a > MARGIN && prevMillis==millis()){
           Input1B = Setpoint1B;
           Setpoint1B = (double) enc1B.read();
           pid1B.Compute();
@@ -188,7 +192,8 @@ void moveToAngle(double a, int motor){
           Serial.println("greater than margin");
         }
         digitalWrite(LED_PIN, HIGH);
-        while (a - Input2A > MARGIN){
+        prevMillis = millis();
+        while (a - Input2A > MARGIN && prevMillis==millis()){
           if (DEBUG){
             Serial.println("here");
             Serial.println(a);
@@ -202,7 +207,8 @@ void moveToAngle(double a, int motor){
       } else if (Input2A - a > MARGIN) {
         driver2.flipM1(true);
         digitalWrite(LED_PIN, HIGH);
-        while (Input2A - a > MARGIN){
+        prevMillis = millis();
+        while (Input2A - a > MARGIN && prevMillis==millis()){
           if (DEBUG){
             Serial.println("here1");
           }
@@ -226,7 +232,8 @@ void moveToAngle(double a, int motor){
           Serial.println("greater than margin");
         }
         digitalWrite(LED_PIN, HIGH);
-        while (a - Input2B > MARGIN){
+        prevMillis = millis();
+        while (a - Input2B > MARGIN && prevMillis == millis()){
           if (DEBUG){
             Serial.println("here2B");
             Serial.println(a);
@@ -240,7 +247,8 @@ void moveToAngle(double a, int motor){
       } else if (Input2B - a > MARGIN) {
         driver2.flipM2(true);
         digitalWrite(LED_PIN, HIGH);
-        while (Input2B - a > MARGIN){
+        prevMillis = millis();
+        while (Input2B - a > MARGIN && prevMillis == millis()){
           if (DEBUG){
             Serial.println("here1");
           }
