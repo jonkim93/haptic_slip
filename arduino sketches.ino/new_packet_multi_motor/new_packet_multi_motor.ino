@@ -36,6 +36,9 @@ boolean terminated [4];
 int prevDeltas [4];
 int prevMillis [4];
 int counters [4];
+double inputs [4];
+double outputs [4];
+double setpoints [4];
 
 DRV8835MotorShield1 driver1;
 DRV8835MotorShield2 driver2;
@@ -43,6 +46,7 @@ Encoder enc1A(2,3);
 Encoder enc1B(4,5);
 Encoder enc2A(6,7);
 Encoder enc2B(8,9);
+Encoder encoders[] = {enc1A, enc1B, enc2A, enc2B};
 double K_p = 2.0;
 double K_i = 5.0;
 double K_d = 3.0;
@@ -50,6 +54,7 @@ PID pid1A(&Input1A, &Output1A, &Setpoint1A, K_p, K_i, K_d, DIRECT);
 PID pid1B(&Input1B, &Output1B, &Setpoint1B, K_p, K_i, K_d, DIRECT);
 PID pid2A(&Input2A, &Output2A, &Setpoint2A, K_p, K_i, K_d, DIRECT);
 PID pid2B(&Input2B, &Output2B, &Setpoint2B, K_p, K_i, K_d, DIRECT);
+PID pids[] = {pid1A, pid1B, pid2A, pid2B};
 
 void setup()
 {
@@ -59,62 +64,32 @@ void setup()
   
   Homed = false;
   
-  Input1A = (double) enc1A.read();
-  Setpoint1A = Input1A;
-  pid1A.SetMode(AUTOMATIC);
-  pid1A.SetSampleTime(2);
-  
-  Input1B = (double) enc1B.read();
-  Setpoint1B = Input1B;
-  pid1B.SetMode(AUTOMATIC);
-  pid1B.SetSampleTime(2);
-  
-  Input2A = (double) enc2A.read();
-  Setpoint2A = Input2A;
-  pid2A.SetMode(AUTOMATIC);
-  pid2A.SetSampleTime(2);
-  
-  Input2B = (double) enc2B.read();
-  Setpoint2B = Input2B;
-  pid2B.SetMode(AUTOMATIC);
-  pid2B.SetSampleTime(2);
-  if (DEBUG){
-    Serial.println("done setting up");
-  }
-  for (int x=0; x<4; x++){
-    prevMillis[x] = millis();
-    counters[x] = 0;
-    terminated[x] = false;
+  for (int i=0; i<4; i++){
+     inputs[i] = (double) encoders[i].read();
+     setpoints[i] = inputs[i];
+     pids[i].SetMode(AUTOMATIC);
+     pids[i].SetSampleTime(1);
+     prevMillis[x] = millis();
+     counters[x] = 0;
+     terminated[x] = false;
   }
 }
 
 void moveDeltaDistance(int d, int motor){ //moves a certain distance in cm
   double deltaDistance = d * INCREMENT;
   double deltaAngle = deltaDistance * 114.6;
-  double currAngle;
-  switch (motor){
-    case M1A:
-      currAngle = (double) enc1A.read();
-      break;
-    case M1B:
-      currAngle = (double) enc1B.read();
-      break;
-    case M2A:
-      currAngle = (double) enc2A.read();
-      break;
-    case M2B:
-      currAngle = (double) enc2B.read();
-      break;
-  }
-  if (DEBUG){
-    Serial.println(currAngle);
-    Serial.println(currAngle+deltaAngle);
-  }
+  double currAngle = (double) encoders[motor].read();
   moveToAngle(currAngle + deltaAngle, motor);
 }
 
 void moveToAngle(double a, int motor){
   int prevMillis;
+  setpoints[motor] = a;
+  inputs[motor] = (double) encoders[motor].read();
+  if (a - inputs[motor] > MARGIN){
+     
+  } else if (inputs[
+  
   switch (motor){
     case M1A:
       Setpoint1A = a;
