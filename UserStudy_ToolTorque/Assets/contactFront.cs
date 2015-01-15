@@ -11,6 +11,6 @@ public class contactFront : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
 		float y = Input.GetAxis("Vertical");
-		rigidbody.AddForce(Vector3.forward * y * 50.0f);
+		rigidbody.AddForce(Vector3.forward * y * 60.0f);
 	}
 }
