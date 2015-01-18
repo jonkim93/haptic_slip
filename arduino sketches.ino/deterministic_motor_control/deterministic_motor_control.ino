@@ -20,7 +20,7 @@
 #define M1B 2
 #define M2A 3
 #define M2B 4
-#define DEBUG false
+#define DEBUG true
 #define INCREMENT 0.01 //cm
 
 double Setpoint1A, Input1A, Output1A, Setpoint1B, Input1B, Output1B;
@@ -125,7 +125,7 @@ void moveToAngle(double a, int motor){
         driver1.flipM1(false);
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (a - Input1A > MARGIN && prevMillis==millis()){
+        while (a - Input1A > MARGIN){ //&& prevMillis==millis()){
           pid1A.Compute();
           driver1.setM1Speed(Output1A);
           Input1A = (double) enc1A.read();
@@ -138,7 +138,7 @@ void moveToAngle(double a, int motor){
         driver1.flipM1(true);
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (Input1A - a > MARGIN && prevMillis==millis()){
+        while (Input1A - a > MARGIN){ //&& prevMillis==millis()){
           Input1A = Setpoint1A;
           Setpoint1A = (double) enc1A.read();
           pid1A.Compute();
@@ -164,7 +164,7 @@ void moveToAngle(double a, int motor){
         }
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (a - Input1B > MARGIN && prevMillis==millis()){
+        while (a - Input1B > MARGIN){ //&& prevMillis==millis()){
           if (DEBUG){
             Serial.println("here");
             Serial.println(a);
@@ -179,7 +179,7 @@ void moveToAngle(double a, int motor){
         driver1.flipM2(true);
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (Input1B - a > MARGIN && prevMillis==millis()){
+        while (Input1B - a > MARGIN){ //&& prevMillis==millis()){
           if (DEBUG){
             Serial.println("here1");
           }
@@ -204,7 +204,7 @@ void moveToAngle(double a, int motor){
         }
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (a - Input2A > MARGIN && prevMillis==millis()){
+        while (a - Input2A > MARGIN){ //&& prevMillis==millis()){
           if (DEBUG){
             Serial.println("here");
             Serial.printf("COMMAND: %d\n", a);
@@ -219,7 +219,7 @@ void moveToAngle(double a, int motor){
         driver2.flipM1(true);
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (Input2A - a > MARGIN && prevMillis==millis()){
+        while (Input2A - a > MARGIN){ //&& prevMillis==millis()){
           if (DEBUG){
             Serial.println("here1");
           }
@@ -244,7 +244,7 @@ void moveToAngle(double a, int motor){
         }
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (a - Input2B > MARGIN && prevMillis==millis()){
+        while (a - Input2B > MARGIN){ //&& prevMillis==millis()){
           if (DEBUG){
             Serial.println("here");
             Serial.println(a);
@@ -259,7 +259,7 @@ void moveToAngle(double a, int motor){
         driver2.flipM2(true);
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (Input2B - a > MARGIN && prevMillis==millis()){
+        while (Input2B - a > MARGIN){ //&& prevMillis==millis()){
           if (DEBUG){
             Serial.println("here1");
           }

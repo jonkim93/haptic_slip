@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections;
 
 public class cube_script : MonoBehaviour {
@@ -23,15 +23,15 @@ public class cube_script : MonoBehaviour {
 		float x = Input.GetAxis("Horizontal");
 		float y = Input.GetAxis("Vertical");
 		if (x==0.0f && y==0.0f){		
-				transform.position = ORIGINAL_POS;
-				serial_connection.sendDeltaDistance("t", 2, 0);
-			} else {
-				transform.position += (Vector3.right * x * UNITY_SCALE_FACTOR);
-				transform.position += (Vector3.forward * y * UNITY_SCALE_FACTOR);
-				int x_command = (int) (x * DEVICE_SCALE_FACTOR);
-				int y_command = (int) (y * DEVICE_SCALE_FACTOR);
-				serial_connection.sendDeltaDistance("t", 2, x_command);
-				//sending.sendDeltaDistance("t", 1, y_command);
-			}
+			transform.position = ORIGINAL_POS;
+			serial_connection.sendDeltaDistance("t", 2, 0);
+		} else {
+			transform.position += (Vector3.right * x * UNITY_SCALE_FACTOR);
+			transform.position += (Vector3.forward * y * UNITY_SCALE_FACTOR);
+			int x_command = (int) (x * DEVICE_SCALE_FACTOR);
+			int y_command = (int) (y * DEVICE_SCALE_FACTOR);
+			serial_connection.sendDeltaDistance("t", 2, x_command);
+			//sending.sendDeltaDistance("t", 1, y_command);
+		}
 	}
 }
