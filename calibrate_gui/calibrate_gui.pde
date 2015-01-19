@@ -19,8 +19,8 @@ Serial port;
 int SIZE = 360;
 int MARGIN = 32;
 int SLIDER_SIZE = 16;
-int WEIGHT = 8;
-float SCALE_FACTOR = 5.0f; //1000.0f/50.0f;
+int WEIGHT = 1;
+float SCALE_FACTOR = 20.0f; //1000.0f/50.0f;
 
 void setup() {
   size(SIZE, SIZE);
@@ -36,6 +36,7 @@ void setup() {
   
   f = createFont("Monospaced", 16);
   textFont(f);
+  frameRate(200);
 }
 
 void draw() {
@@ -74,9 +75,10 @@ void getPosAndSendSerial(){
   msg += m2b;
   msg += "\n";
   if (m1a != 0 || m1b != 0 || m2a != 0 || m2b !=0){
-    print(msg);
+    port.write(msg);
+    print(millis());
+    //print(msg);
   }
-  port.write(msg);
 }
 
 void updateAndDisplayAll(){
