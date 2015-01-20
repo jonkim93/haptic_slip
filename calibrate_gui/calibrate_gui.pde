@@ -20,7 +20,7 @@ int SIZE = 360;
 int MARGIN = 32;
 int SLIDER_SIZE = 16;
 int WEIGHT = 1;
-float SCALE_FACTOR = 20.0f; //1000.0f/50.0f;
+float SCALE_FACTOR = 1.0f; //1000.0f/50.0f;
 
 void setup() {
   size(SIZE, SIZE);
@@ -76,8 +76,8 @@ void getPosAndSendSerial(){
   msg += "\n";
   if (m1a != 0 || m1b != 0 || m2a != 0 || m2b !=0){
     port.write(msg);
-    print(millis());
-    //print(msg);
+    //println(millis());
+    println(msg);
   }
 }
 

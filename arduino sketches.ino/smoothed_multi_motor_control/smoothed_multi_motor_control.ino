@@ -15,15 +15,15 @@
  */
 
 #define LED_PIN 13
-#define MARGIN 1
-#define SCALE_FACTOR 136.42 //114.52 //136.42
+#define MARGIN 0
+//#define SCALE_FACTOR 136.42 //114.52 //136.42
 #define M1A 0
 #define M1B 1
 #define M2A 2
 #define M2B 3
-#define DEBUG false
-#define INCREMENT 0.01
-#define MS_PER_STEP 5
+#define DEBUG true
+//#define INCREMENT 0.01
+#define MS_PER_STEP 5 //1000ms/200Hz
 #define NUM_MOTORS 4
 
 double Setpoint1A, Input1A, Output1A, Setpoint1B, Input1B, Output1B;
@@ -33,13 +33,14 @@ boolean FingerDown;
 boolean Homed;
 
 double encValues [100];
-int j = 0;
-int x=0;
-boolean s = true;
-int reading1, reading2;
+int j;
+boolean notPrinted = true;
+
+double INCREMENT = 0.01;
+double SCALE_FACTOR = 136.42;
 
 boolean terminated [4];
-int prevDeltas [4];
+double prevAngles [4];
 int prevMillis [4];
 int counters [4];
 
@@ -49,9 +50,9 @@ Encoder enc1A(2,3);
 Encoder enc1B(4,5);
 Encoder enc2A(6,7);
 Encoder enc2B(8,9);
-double K_p = 2.0;
-double K_i = 5.0;
-double K_d = 3.0;
+double K_p = 8.0;
+double K_i = 1.0;
+double K_d = 0.0;
 PID pid1A(&Input1A, &Output1A, &Setpoint1A, K_p, K_i, K_d, DIRECT);
 PID pid1B(&Input1B, &Output1B, &Setpoint1B, K_p, K_i, K_d, DIRECT);
 PID pid2A(&Input2A, &Output2A, &Setpoint2A, K_p, K_i, K_d, DIRECT);
@@ -87,15 +88,14 @@ void setup()
   pid2B.SetOutputLimits(-400,400);
 }
 
-void moveDeltaDistance(int d, int motor){ //moves a certain distance in cm
-  double deltaDistance = d * INCREMENT; //convert to cm
-  double deltaAngle = deltaDistance * SCALE_FACTOR; // convert to encoder counts
+double convertDistanceToAngle(int d, int motor){
+  double deltaDistance = ((double) d) *  ( INCREMENT); //convert to cm
+  double deltaAngle = deltaDistance * (SCALE_FACTOR); // convert to encoder counts
   double currAngle;
+  double resultAngle;
   switch(motor){
     case M1A:
       currAngle = (double) enc1A.read();
-      //encValues[j] = currAngle;
-      //j++;
       break;
     case M1B:
       currAngle = (double) enc1B.read();
@@ -107,48 +107,26 @@ void moveDeltaDistance(int d, int motor){ //moves a certain distance in cm
       currAngle = (double) enc2B.read();
       break;
   }
-  moveToAngle(currAngle + deltaAngle, motor);
-}
-
-void stayStill(int motor){
-  switch(motor){
-    case M1A:
-      driver1.setM1Speed(0);
-      break;
-    case M1B:
-      driver1.setM2Speed(0);
-      break;
-    case M2A:
-      driver2.setM1Speed(0);
-      break;
-    case M2B:
-      driver2.setM2Speed(0);
-      break;
-  } 
+  resultAngle = currAngle + deltaAngle;
+  return resultAngle;
 }
 
 void moveToAngle(double a, int motor){
   int prevMillis;
+  //Serial.println(a);
   switch (motor){
     case M1A:
-      //driver1.flipM1(true);
       Setpoint1A = a;
       Input1A = (double) enc1A.read(); 
       if (abs(a - Input1A) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        Serial.printf("\nTIME: %d", prevMillis);
-        while (abs(a - Input1A) > MARGIN){ //&& prevMillis == millis()){
-          pid1A.Compute();
-          driver1.setM1Speed(Output1A);
-          Serial.printf("\n  %f", Output1A);
-          Input1A = (double) enc1A.read();
-          if (DEBUG){
-            Serial.printf("\nm1a stuff:\n  setpoint: %f\n  input: %f\n  output: %f", Setpoint1A, Input1A, Output1A);
-          }
+        pid1A.Compute();
+        driver1.setM1Speed(Output1A);
+        if (DEBUG){
+          Serial.printf("\nm1a stuff:\n  setpoint: %f\n  input: %f\n  output: %f", Setpoint1A, Input1A, Output1A);
         }
       }
-      driver1.setM1Speed(0);
       digitalWrite(LED_PIN, LOW);
       break;
     case M1B:
@@ -157,13 +135,11 @@ void moveToAngle(double a, int motor){
       if (abs(a - Input1B) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (abs(a - Input1B) > MARGIN && prevMillis == millis()){
-          pid1B.Compute();
-          driver1.setM2Speed(Output1B);
-          Input1B = (double) enc1B.read();
-          if (DEBUG){
-            Serial.printf("\nm1b stuff:\n  setpoint: %f\n  input: %f\n  output: %f", Setpoint1B, Input1B, Output1B);
-          }
+        pid1B.Compute();
+        driver1.setM2Speed(Output1B);
+        Input1B = (double) enc1B.read();
+        if (DEBUG){
+          Serial.printf("\nm1b stuff:\n  setpoint: %d\n  input: %d\n  output: %d", Setpoint1B, Input1B, Output1B);
         }
       }
       digitalWrite(LED_PIN, LOW);
@@ -174,13 +150,11 @@ void moveToAngle(double a, int motor){
       if (abs(a - Input2A) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (abs(a - Input2A) > MARGIN && prevMillis == millis()){
-          pid2A.Compute();
-          driver2.setM1Speed(Output2A);
-          Input2A = (double) enc2A.read();
-          if (DEBUG){
-            Serial.printf("\nm2a stuff:\n  setpoint: %f\n  input: %f\n  output: %f", Setpoint2A, Input2A, Output2A);
-          }
+        pid2A.Compute();
+        driver2.setM1Speed(Output2A);
+        Input2A = (double) enc2A.read();
+        if (DEBUG){
+          Serial.printf("\nm2a stuff:\n  setpoint: %d\n  input: %d\n  output: %d", Setpoint2A, Input2A, Output2A);
         }
       }
       digitalWrite(LED_PIN, LOW);
@@ -191,13 +165,11 @@ void moveToAngle(double a, int motor){
       if (abs(a - Input2B) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
         prevMillis = millis();
-        while (abs(a - Input2B) > MARGIN && prevMillis == millis()){
-          pid2B.Compute();
-          driver2.setM2Speed(Output2B);
-          Input2B = (double) enc2B.read();
-          if (DEBUG){
-            Serial.printf("\nm2b stuff:\n  setpoint: %f\n  input: %f\n  output: %f", Setpoint2B, Input2B, Output2B);
-          }
+        pid2B.Compute();
+        driver2.setM2Speed(Output2B);
+        Input2B = (double) enc2B.read();
+        if (DEBUG){
+          Serial.printf("\nm2b stuff:\n  setpoint: %d\n  input: %d\n  output: %d", Setpoint2B, Input2B, Output2B);
         }
       }
       digitalWrite(LED_PIN, LOW);
@@ -206,33 +178,38 @@ void moveToAngle(double a, int motor){
   }  
 }
 
-void test(){
-  reading1 = enc1A.read();
-  driver1.setM1Speed(200);
-  Serial.printf("\n");
-  Serial.println(enc1A.read());
-  delay(1); 
-  Serial.println(enc1A.read());
-  driver1.setM1Speed(0);
-  delay(1);
-  reading2 = enc1A.read();
-  Serial.println(reading1);
-  Serial.println(reading2);
-}
-
 void loop()
 {
-  int s = 20;
-  if (x==0){
-    delay(3000);
-    moveDeltaDistance(s,0);
-    //moveToAngle(200,0);
-    x++;
-  } else if (x < 10){
-    Serial.printf("here");
-    moveDeltaDistance(s,0);
-    //moveToAngle(200,0);
-    x++;    
-  } 
-  
+  int x;
+  if (Serial.available()){ 
+    char f = Serial.read();
+    int a;
+    char s;
+    
+    if (f=='t'){
+      for (x=0; x<NUM_MOTORS; x++){
+        s = Serial.read();
+        if (DEBUG) {
+          Serial.printf("received and parsing: %d, %c\n", x, s); 
+        }
+        if (s == '-'){
+          a = -(double) Serial.parseInt();
+        } else if (s == '+'){
+          a = (double) Serial.parseInt();
+        }
+        prevAngles[x] = convertDistanceToAngle(a, x); 
+      }
+      
+      for (x=0; x<NUM_MOTORS; x++){
+        if (DEBUG){ 
+          Serial.printf("\ncommanding motor %d to angle: %f\n", x, prevAngles[x]); 
+        }
+        moveToAngle(prevAngles[x], x);
+      }
+    }
+  } else {
+    for (x=0; x<NUM_MOTORS; x++){ //iterate through all the motors 
+      moveToAngle(prevAngles[x], x);
+    }
+  }
 }
