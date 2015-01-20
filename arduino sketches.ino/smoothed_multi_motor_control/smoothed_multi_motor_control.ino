@@ -137,7 +137,6 @@ void moveToAngle(double a, int motor){
         prevMillis = millis();
         pid1B.Compute();
         driver1.setM2Speed(Output1B);
-        Input1B = (double) enc1B.read();
         if (DEBUG){
           Serial.printf("\nm1b stuff:\n  setpoint: %d\n  input: %d\n  output: %d", Setpoint1B, Input1B, Output1B);
         }
@@ -152,7 +151,6 @@ void moveToAngle(double a, int motor){
         prevMillis = millis();
         pid2A.Compute();
         driver2.setM1Speed(Output2A);
-        Input2A = (double) enc2A.read();
         if (DEBUG){
           Serial.printf("\nm2a stuff:\n  setpoint: %d\n  input: %d\n  output: %d", Setpoint2A, Input2A, Output2A);
         }
@@ -167,7 +165,6 @@ void moveToAngle(double a, int motor){
         prevMillis = millis();
         pid2B.Compute();
         driver2.setM2Speed(Output2B);
-        Input2B = (double) enc2B.read();
         if (DEBUG){
           Serial.printf("\nm2b stuff:\n  setpoint: %d\n  input: %d\n  output: %d", Setpoint2B, Input2B, Output2B);
         }
