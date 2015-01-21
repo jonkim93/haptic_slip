@@ -49,9 +49,9 @@ Encoder enc1A(2,3);
 Encoder enc1B(4,5);
 Encoder enc2A(6,7);
 Encoder enc2B(8,9);
-double K_p = 2.0;
-double K_i = 5.0;
-double K_d = 3.0;
+double K_p = 4.0;
+double K_i = 1.0;
+double K_d = 0.0;
 PID pid1A(&Input1A, &Output1A, &Setpoint1A, K_p, K_i, K_d, DIRECT);
 PID pid1B(&Input1B, &Output1B, &Setpoint1B, K_p, K_i, K_d, DIRECT);
 PID pid2A(&Input2A, &Output2A, &Setpoint2A, K_p, K_i, K_d, DIRECT);
@@ -222,17 +222,15 @@ void test(){
 
 void loop()
 {
-  int s = 20;
+  int s = 200;
   if (x==0){
     delay(3000);
     moveDeltaDistance(s,0);
-    //moveToAngle(200,0);
     x++;
-  } else if (x < 10){
+  } else if (x < 10){/**
     Serial.printf("here");
     moveDeltaDistance(s,0);
-    //moveToAngle(200,0);
-    x++;    
+    x++;    **/
   } 
   
 }

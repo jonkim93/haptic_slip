@@ -28,6 +28,10 @@
 
 double Setpoint1A, Input1A, Output1A, Setpoint1B, Input1B, Output1B;
 double Setpoint2A, Input2A, Output2A, Setpoint2B, Input2B, Output2B;
+double Home1A = 0.0;
+double Home1B = 0.0;
+double Home2A = 0.0;
+double Home2B = 0.0;
 boolean Flipped;
 boolean FingerDown;
 boolean Homed;
@@ -50,8 +54,8 @@ Encoder enc1A(2,3);
 Encoder enc1B(4,5);
 Encoder enc2A(6,7);
 Encoder enc2B(8,9);
-double K_p = 8.0;
-double K_i = 1.0;
+double K_p = 32.0;
+double K_i = 0.5;
 double K_d = 0.0;
 PID pid1A(&Input1A, &Output1A, &Setpoint1A, K_p, K_i, K_d, DIRECT);
 PID pid1B(&Input1B, &Output1B, &Setpoint1B, K_p, K_i, K_d, DIRECT);
@@ -86,6 +90,20 @@ void setup()
   pid2B.SetMode(AUTOMATIC);
   pid2B.SetSampleTime(1);
   pid2B.SetOutputLimits(-400,400);
+}
+
+void setHome(){
+  Home1A = enc1A.read();
+  Home1B = enc1B.read();
+  Home2A = enc2A.read();
+  Home2B = enc2B.read(); 
+}
+
+void goHome(){
+  moveToAngle(Home1A, M1A);
+  moveToAngle(Home1B, M1B);
+  moveToAngle(Home2A, M2A);
+  moveToAngle(Home2B, M2B); 
 }
 
 double convertDistanceToAngle(int d, int motor){
@@ -170,8 +188,7 @@ void moveToAngle(double a, int motor){
         }
       }
       digitalWrite(LED_PIN, LOW);
-      break;
-      
+      break;    
   }  
 }
 
@@ -203,7 +220,11 @@ void loop()
         }
         moveToAngle(prevAngles[x], x);
       }
-    }
+    } else if (f=='f') {
+      goHome();
+    } else if (f=='h') { 
+      setHome();
+    } 
   } else {
     for (x=0; x<NUM_MOTORS; x++){ //iterate through all the motors 
       moveToAngle(prevAngles[x], x);
