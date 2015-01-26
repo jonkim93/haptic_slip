@@ -16,15 +16,22 @@
 
 #define LED_PIN 13
 #define MARGIN 0
-//#define SCALE_FACTOR 136.42 //114.52 //136.42
+#define SCALE_FACTOR 114.52 //136.42 //114.52 //136.42
 #define M1A 0
 #define M1B 1
 #define M2A 2
 #define M2B 3
-#define DEBUG false //true
-//#define INCREMENT 0.01
+#define DEBUG true //true
+#define INCREMENT 0.01
 #define MS_PER_STEP 5 //1000ms/200Hz
 #define NUM_MOTORS 4
+#define ENCODER_OPTIMIZE_INTERRUPTS
+
+#define LINEAR_CENTER 0 //-62.5 cm * SCALE_FACTOR
+#define ARRAY_CENTER 0 //-187.5 cm * SCALE_FACTOR
+#define SMOOTH_CENTER 0 // 62.5 cm * SCALE_FACTOR
+#define DIAMOND_CENTER 0 // 187.5 cm * SCALE_FACTOR
+
 
 double Setpoint1A, Input1A, Output1A, Setpoint1B, Input1B, Output1B;
 double Setpoint2A, Input2A, Output2A, Setpoint2B, Input2B, Output2B;
@@ -35,14 +42,15 @@ double Home2B = 0.0;
 boolean Flipped;
 boolean FingerDown;
 boolean Homed;
+long angle;
 
 double encValues [100];
 int j;
 int i = 0;
 boolean notPrinted = true;
 
-double INCREMENT = 0.01;
-double SCALE_FACTOR = 136.42;
+//double INCREMENT = 0.01;
+//double SCALE_FACTOR = 136.42;
 
 boolean terminated [4];
 double prevAngles [4];
@@ -55,8 +63,8 @@ Encoder enc1A(2,3);
 Encoder enc1B(4,5);
 Encoder enc2A(6,7);
 Encoder enc2B(8,9);
-double K_p = 8.0;
-double K_i = 0.25;
+double K_p = 4.0;
+double K_i = 0.5;
 double K_d = 0.0;
 PID pid1A(&Input1A, &Output1A, &Setpoint1A, K_p, K_i, K_d, DIRECT);
 PID pid1B(&Input1B, &Output1B, &Setpoint1B, K_p, K_i, K_d, DIRECT);
@@ -77,20 +85,20 @@ void setup()
      terminated[i] = false;
   }
   pid1A.SetMode(AUTOMATIC);
-  pid1A.SetSampleTime(2);
-  pid1A.SetOutputLimits(-400,400);
+  pid1A.SetSampleTime(1);
+  pid1A.SetOutputLimits(-400.0,400.0);
 
   pid1B.SetMode(AUTOMATIC);
   pid1B.SetSampleTime(1);
-  pid1B.SetOutputLimits(-400,400);
+  pid1B.SetOutputLimits(-400.0,400.0);
 
   pid2A.SetMode(AUTOMATIC);
   pid2A.SetSampleTime(1);
-  pid2A.SetOutputLimits(-400,400);
+  pid2A.SetOutputLimits(-400.0,400.0);
   
   pid2B.SetMode(AUTOMATIC);
   pid2B.SetSampleTime(1);
-  pid2B.SetOutputLimits(-400,400);
+  pid2B.SetOutputLimits(-400.0,400.0);
 }
 
 void setHome(){
@@ -131,7 +139,6 @@ double convertDistanceToAngle(int d, int motor){
 }
 
 void moveToAngle(double a, int motor){
-  int prevMillis;
   //Serial.println(a);
   switch (motor){
     case M1A:
@@ -139,7 +146,6 @@ void moveToAngle(double a, int motor){
       Input1A = (double) enc1A.read(); 
       if (abs(a - Input1A) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
         pid1A.Compute();
         driver1.setM1Speed(Output1A);
         if (DEBUG){
@@ -153,7 +159,6 @@ void moveToAngle(double a, int motor){
       Input1B = (double) enc1B.read(); 
       if (abs(a - Input1B) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
         pid1B.Compute();
         driver1.setM2Speed(Output1B);
         if (DEBUG){
@@ -167,7 +172,6 @@ void moveToAngle(double a, int motor){
       Input2A = (double) enc2A.read(); 
       if (abs(a - Input2A) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
         pid2A.Compute();
         driver2.setM1Speed(Output2A);
         if (DEBUG){
@@ -181,7 +185,6 @@ void moveToAngle(double a, int motor){
       Input2B = (double) enc2B.read(); 
       if (abs(a - Input2B) > MARGIN){ //if the setpoint is greater than the current angle
         digitalWrite(LED_PIN, HIGH);
-        prevMillis = millis();
         pid2B.Compute();
         driver2.setM2Speed(Output2B);
         if (DEBUG){
@@ -195,49 +198,99 @@ void moveToAngle(double a, int motor){
 
 void loop()
 {
+  int a;
   int x;
-  if (Serial.available()){ 
-    char f = Serial.read();
-    double a;
-    char s;
+  char packet [9] = {};
+  if (Serial.available()>4){
+    Serial.readBytes(packet, 9);
+    char f = packet[0];
+    //Serial.println(f);
+    if (DEBUG){
+      for (int i = 0; i<9; i++){
+        Serial.println(packet[i]); 
+      }
+      Serial.println("++++++++++++");
+    }
     if (f=='t'){
-      i++;
-      for (x=0; x<NUM_MOTORS; x++){
-        s = Serial.read();
-        if (DEBUG) {
-          Serial.printf("\nreceived and parsing: %d, %c\n", x, s); 
-        }
+      pid1A.SetTunings(20.0,0.1,0.0);
+      pid1B.SetTunings(20.0,0.1,0.0);
+      pid2A.SetTunings(20.0,0.1,0.0);
+      pid2B.SetTunings(20.0,0.1,0.0);
+      //Serial.println("F EQUALS T");
+      for (x=0; x<8; x+=2){
+        char s = packet[x+1];
         if (s == '-'){
-          a = -(double) Serial.parseInt();
+          a = - (packet[x+2]);
         } else if (s == '+'){
-          a = (double) Serial.parseInt();
+          a = (packet[x+2]);
         }
-        Serial.printf("\nDISTANCE %d: %f", x,a);
-        prevAngles[x] = convertDistanceToAngle(a, x); 
+        if (DEBUG){
+          Serial.printf("\nDISTANCE %d: %d", x/2, a);
+        }
+        prevAngles[x/2] = convertDistanceToAngle(a, x/2); 
       }
       
       for (x=0; x<NUM_MOTORS; x++){
         if (DEBUG){ 
-          
           Serial.printf("\ncommanding motor %d to angle: %f\n", x, prevAngles[x]); 
         }
         moveToAngle(prevAngles[x], x);
       }
     } else if (f=='f') {
+      //Serial.println("F EQUALS F");
       prevAngles[M1A] = Home1A;
       prevAngles[M1B] = Home1B;
       prevAngles[M2A] = Home2A;
       prevAngles[M2B] = Home2B;
-      goHome();
+      pid1A.SetTunings(1.0,0.0,0.0);
+      pid1B.SetTunings(1.0,0.0,0.0);
+      pid2A.SetTunings(1.0,0.0,0.0);
+      pid2B.SetTunings(1.0,0.0,0.0);
     } else if (f=='h') { 
       setHome();
-    } 
+    } else if (f=='a'){
+      prevAngles[M1A] = ARRAY_CENTER;
+      prevAngles[M1B] = ARRAY_CENTER;
+      prevAngles[M2A] = ARRAY_CENTER;
+      prevAngles[M2B] = ARRAY_CENTER;
+      pid1A.SetTunings(4.0,0.0,0.0);
+      pid1B.SetTunings(4.0,0.0,0.0);
+      pid2A.SetTunings(4.0,0.0,0.0);
+      pid2B.SetTunings(4.0,0.0,0.0);
+    } else if (f=='l'){
+      prevAngles[M1A] = LINEAR_CENTER;
+      prevAngles[M1B] = LINEAR_CENTER;
+      prevAngles[M2A] = LINEAR_CENTER;
+      prevAngles[M2B] = LINEAR_CENTER;
+      pid1A.SetTunings(4.0,0.0,0.0);
+      pid1B.SetTunings(4.0,0.0,0.0);
+      pid2A.SetTunings(4.0,0.0,0.0);
+      pid2B.SetTunings(4.0,0.0,0.0);      
+    } else if (f=='s'){
+      prevAngles[M1A] = SMOOTH_CENTER;
+      prevAngles[M1B] = SMOOTH_CENTER;
+      prevAngles[M2A] = SMOOTH_CENTER;
+      prevAngles[M2B] = SMOOTH_CENTER;
+      pid1A.SetTunings(4.0,0.0,0.0);
+      pid1B.SetTunings(4.0,0.0,0.0);
+      pid2A.SetTunings(4.0,0.0,0.0);
+      pid2B.SetTunings(4.0,0.0,0.0);
+    } else if (f=='d'){
+      prevAngles[M1A] = DIAMOND_CENTER;
+      prevAngles[M1B] = DIAMOND_CENTER;
+      prevAngles[M2A] = DIAMOND_CENTER;
+      prevAngles[M2B] = DIAMOND_CENTER;
+      pid1A.SetTunings(4.0,0.0,0.0);
+      pid1B.SetTunings(4.0,0.0,0.0);
+      pid2A.SetTunings(4.0,0.0,0.0);
+      pid2B.SetTunings(4.0,0.0,0.0);
+    }
+    while (Serial.available()){
+      Serial.read();
+    }
   } else {
     for (x=0; x<NUM_MOTORS; x++){ //iterate through all the motors 
       moveToAngle(prevAngles[x], x);
-    }
-    if (i>0){
-      Serial.println(i);
     }
   }
 }
